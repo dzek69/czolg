@@ -3,6 +3,10 @@ import { ApiClient, RequestType } from "api-reach";
 
 import { Job } from "./Job.js";
 
+interface Options {
+    headers?: Record<string, string>;
+}
+
 class Crawler<T> {
     private readonly _q: Queue;
 
@@ -10,10 +14,13 @@ class Crawler<T> {
 
     private readonly _api: ApiClient;
 
-    public constructor() {
+    public constructor({ headers }: Options = {}) {
         this._q = new Queue({ concurrency: 2 });
         this._api = new ApiClient({
             type: RequestType.text,
+            fetchOptions: {
+                headers: headers ?? {},
+            },
         });
 
         this._results = [];
@@ -50,7 +57,7 @@ class Crawler<T> {
     }
 }
 
-// @TODO size limit, test for content type, support for fetch options
+// @TODO size limit, test for content type
 
 export {
     Crawler,

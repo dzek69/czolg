@@ -5,7 +5,6 @@ import { makeArray } from "bottom-line-utils";
 import type { ApiClient } from "api-reach";
 import type { Cheerio, CheerioAPI } from "cheerio";
 import type { Node } from "domhandler"; // eslint-disable-line @typescript-eslint/no-shadow
-
 import type { Crawler } from "./Crawler.js";
 
 interface Options {

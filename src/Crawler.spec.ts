@@ -1,4 +1,4 @@
-import { Crawler } from "./Crawler";
+import { Crawler } from "./Crawler.js";
 
 describe("Crawler", function() {
     it("works", async function() {
