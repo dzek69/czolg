@@ -188,6 +188,31 @@ class Job<T> {
         return this;
     }
 
+    public filter(cb: (result: unknown, index: number, array: unknown[]) => boolean) {
+        // eslint-disable-next-line @typescript-eslint/require-await
+        this._queue(async () => {
+            if (Array.isArray(this._result)) {
+                this._resultType = "custom";
+                this._result = this._result.filter(cb);
+                return;
+            }
+
+            if (this._resultType === "elements") {
+                const elems = this._result as Cheerio<Node>;
+
+                const elArr = elems.toArray();
+
+                this._result = elems.filter((key, elem) => {
+                    return cb(this._$?.(elem), key, elArr);
+                }).toArray();
+                return;
+            }
+
+            throw new Error("You can run `filter` only after array returning method");
+        });
+        return this;
+    }
+
     public resolve() {
         // eslint-disable-next-line @typescript-eslint/require-await
         this._queue(async () => {

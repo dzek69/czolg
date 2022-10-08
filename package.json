@@ -1,6 +1,6 @@
 {
   "name": "czolg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "repository": "git@github.com:dzek69/czolg.git",
   "author": "Jacek Nowacki",
   "license": "MIT",
@@ -16,7 +16,8 @@
     "prepack": "yarn compile",
     "prepublishOnly": "yarn lint && yarn test && yarn docs",
     "start:dev": "nodemon",
-    "start:dev:compatibility": "TS_NODE_FILES=true yarn start:dev"
+    "start:dev:compatibility": "TS_NODE_FILES=true yarn start:dev",
+    "prepare": "husky install"
   },
   "exports": {
     ".": {
@@ -48,11 +49,11 @@
     "domhandler": "^4.3.0",
     "eslint": "^8.18.0",
     "fs-extra": "^9.0.1",
-    "husky": "^7.0.4",
+    "husky": "^8.0.1",
     "jest": "^27.5.1",
     "must": "^0.13.4",
     "nodemon": "^2.0.19",
-    "ts-node": "^9.0.0",
+    "ts-node": "^10.9.1",
     "typedoc": "^0.23.8",
     "typescript": "^4.7.4",
     "eslint-plugin-import": "^2.26.0",
@@ -66,7 +67,7 @@
     }
   },
   "libraryTemplate": {
-    "version": "3.5.2",
+    "version": "3.5.3",
     "language": "typescript",
     "fixDefaultForCommonJS": true,
     "jsx": false

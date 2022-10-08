@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [UNRELEASED]
 (nothing yet)
 
+## [1.1.0] - 2022-10-08
+### Added
+- support for filtering
+
 ## [1.0.0] - 2022-09-17
 ### Added
 - support for passing headers for crawler
