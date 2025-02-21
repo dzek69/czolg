@@ -40,6 +40,10 @@ await c.start("https://old.reddit.com/r/aww/").find("img").attr("src").resolve()
 const results = await c.results(); // ["https://a.thumbs.redditmedia.com/...", "https://b.thumbs.redditmedia.com/...", ...]
 ```
 
+## Documentation
+
+Proper documentation is not yet available.
+
 ## License
 
 MIT

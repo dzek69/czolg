@@ -1,12 +1,12 @@
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+The format is based on [EZEZ Changelog](https://ezez.dev/changelog/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [UNRELEASED]
 (nothing yet)
 
-## [1.1.0+]
+## [2.0.0]
 ### Added
 - full TypeScript support that will block you from returning unexpected data types!
 - `replace` method, that runs a callback with current result and replaces the result with returned value
@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - each now returns the instance back
 - some internal changes in filter & map, that should not change anything really
 - map now detects new type of content and if it's known it sets the internal runtime checks more friendly, so you can run more functions
+### Dev
+- deps upgrade, docs pipelines added
 
 ## [1.1.0] - 2022-10-08
 ### Added

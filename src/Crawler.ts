@@ -7,6 +7,10 @@ interface Options {
     headers?: Record<string, string>;
 }
 
+/**
+ * Main class, create an instance, use start() to start a new job, collect results from jobs and collect results with
+ * crawler.results().
+ */
 class Crawler<T> {
     private readonly _q: Queue;
 
@@ -26,6 +30,11 @@ class Crawler<T> {
         this._results = [];
     }
 
+    /**
+     * Start a new job from given url.
+     * @param url - URL to start from.
+     * @returns Job instance.
+     */
     public start(url: string) {
         return new Job<T, string>(this, { url }, {
             queue: this._q,
@@ -39,6 +48,9 @@ class Crawler<T> {
         this._results.push(result);
     };
 
+    /**
+     * Get results from all jobs.
+     */
     public results(): Promise<T[]> {
         return new Promise(r => {
             if (!this._q.getQueueSize()) {
