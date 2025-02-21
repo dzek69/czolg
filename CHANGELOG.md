@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [UNRELEASED]
 (nothing yet)
 
+## [1.1.0+]
+### Added
+- full TypeScript support that will block you from returning unexpected data types!
+- `replace` method, that runs a callback with current result and replaces the result with returned value
+### Breaking
+- each now returns the instance back
+- some internal changes in filter & map, that should not change anything really
+- map now detects new type of content and if it's known it sets the internal runtime checks more friendly, so you can run more functions
+
 ## [1.1.0] - 2022-10-08
 ### Added
 - support for filtering

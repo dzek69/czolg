@@ -27,7 +27,7 @@ class Crawler<T> {
     }
 
     public start(url: string) {
-        return new Job<T>(this, { url }, {
+        return new Job<T, string>(this, { url }, {
             queue: this._q,
             api: this._api,
         }, {
@@ -39,7 +39,7 @@ class Crawler<T> {
         this._results.push(result);
     };
 
-    public results() {
+    public results(): Promise<T[]> {
         return new Promise(r => {
             if (!this._q.getQueueSize()) {
                 r(this._results);
