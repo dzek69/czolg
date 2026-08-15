@@ -4,8 +4,9 @@ The format is based on [EZEZ Changelog](https://ezez.dev/changelog/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [UNRELEASED]
+
+## [2.1.0] - 2026-08-15
 ### Added
-- `concurrency` option for `Crawler` (defaults to 2, as before)
 - `Job.wait()` - resolves when all currently queued steps of the job are done (never rejects)
 ### Fixed
 - crawler-level concurrency now actually throttles page downloads; previously every job started its download immediately and the crawler-wide queue only idled alongside, so any number of pages could be fetched at once
