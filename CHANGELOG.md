@@ -4,7 +4,12 @@ The format is based on [EZEZ Changelog](https://ezez.dev/changelog/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [UNRELEASED]
-(nothing yet)
+### Fixed
+- HTTP/crawl errors no longer escape as unhandled promise rejections (which could kill the host process); the first error in a job's chain is stored and the remaining chained steps are skipped
+- `get()` and `result()` now reject with the job's first error instead of resolving with broken data
+- `each()` now awaits values returned by the callback, so errors from child jobs (after `.click()`) propagate to the awaited path
+### Dev
+- specs rewritten from live npmjs.com crawls (npmjs now responds with 403 to the crawler) to a deterministic local HTTP server
 
 ## [2.0.0]
 ### Added

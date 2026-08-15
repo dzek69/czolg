@@ -1,5 +1,5 @@
-import { EVENTS, Queue } from "queue-system";
 import { ApiClient, RequestType } from "api-reach";
+import { EVENTS, Queue } from "queue-system";
 
 import { Job } from "./Job.js";
 

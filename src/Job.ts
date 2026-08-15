@@ -1,6 +1,7 @@
-import { EVENTS, Queue } from "queue-system";
-import { load as $load } from "cheerio";
+/* eslint-disable max-lines */
 import { makeArray } from "bottom-line-utils";
+import { load as $load } from "cheerio";
+import { EVENTS, Queue } from "queue-system";
 
 import type { ApiClient } from "api-reach";
 import type { Cheerio, CheerioAPI } from "cheerio";
@@ -24,6 +25,8 @@ interface Callbacks<R> {
 
 type Elements = Cheerio<Node>;
 
+const noop = () => undefined;
+
 class Job<ExpR, CR = never> {
     private readonly _crawler: Crawler<ExpR>;
 
@@ -40,6 +43,10 @@ class Job<ExpR, CR = never> {
     private readonly _jobQueue: Queue;
 
     private _$?: CheerioAPI;
+
+    private _hasError: boolean = false;
+
+    private _error: unknown;
 
     /**
      * Saves current result to the crawler
@@ -65,7 +72,7 @@ class Job<ExpR, CR = never> {
     /**
      * Gets attribute of found elements
      */
-    public attr: CR extends Elements ? (name: string) => Job<ExpR, string> : never;
+    public attr: CR extends Elements ? (attrName: string) => Job<ExpR, string> : never;
 
     /**
      * Makes the collected URLs absolute, by using the job URL as a base.
@@ -78,6 +85,7 @@ class Job<ExpR, CR = never> {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.result = (async () => {
             await this._wait();
+            this._throwIfError();
             if (Array.isArray(this._result)) {
                 this._result.forEach(r => {
                     this._onResult(r as ExpR);
@@ -125,7 +133,7 @@ class Job<ExpR, CR = never> {
         }) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        this.attr = ((name: string) => {
+        this.attr = ((attrName: string) => {
             // eslint-disable-next-line @typescript-eslint/require-await
             this._queue(async () => {
                 if (this._resultType !== "elements") {
@@ -134,7 +142,7 @@ class Job<ExpR, CR = never> {
                 const elems = this._result as Elements;
                 this._resultType = "strings";
                 this._result = elems.map((key, elem) => {
-                    return this._$?.(elem).attr(name);
+                    return this._$?.(elem).attr(attrName);
                 }).toArray();
             });
             return this;
@@ -143,6 +151,7 @@ class Job<ExpR, CR = never> {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.get = (async () => {
             await this._wait();
+            this._throwIfError();
             return makeArray(this._result);
         }) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -177,9 +186,30 @@ class Job<ExpR, CR = never> {
         this._download();
     }
 
+    private _throwIfError() {
+        if (this._hasError) {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
+            throw this._error;
+        }
+    }
+
     private _queue(fn: () => Promise<unknown>) {
-        const task = this._jobQueue.add(fn);
-        this._deps.queue.add(() => task.promise);
+        const task = this._jobQueue.add(async () => {
+            if (this._hasError) {
+                return; // a previous step already failed, skip the rest of the chain
+            }
+            try {
+                await fn();
+            }
+            catch (e: unknown) {
+                this._hasError = true;
+                this._error = e;
+            }
+        });
+        // the mirror task exists only so crawler.results() can wait for all jobs; its promise is observed by no one,
+        // so a rejection here would be an unhandled rejection killing the process (fn errors are caught above, but
+        // keep the safety net for queue-system-level failures)
+        this._deps.queue.add(() => task.promise).promise.catch(noop);
     }
 
     private _download() {
@@ -232,9 +262,9 @@ class Job<ExpR, CR = never> {
     /**
      * Iterates over collected elements, useful after .click()
      */
-    public async each(cb: (result: CR, key: number) => void) {
+    public async each(cb: (result: CR, key: number) => unknown) {
         const a = await this.get();
-        a.forEach(cb);
+        await Promise.all(a.map((item, index) => cb(item, index)));
         return this;
     }
 
