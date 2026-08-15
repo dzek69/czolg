@@ -1,10 +1,16 @@
 import { ApiClient, RequestType } from "api-reach";
-import { EVENTS, Queue } from "queue-system";
+import { Queue } from "queue-system";
+
+import type { WaitableJob } from "./Job.js";
 
 import { Job } from "./Job.js";
 
 interface Options {
     headers?: Record<string, string>;
+    /**
+     * Maximum number of pages downloaded at the same time. Defaults to 2.
+     */
+    concurrency?: number;
 }
 
 /**
@@ -16,10 +22,12 @@ class Crawler<T> {
 
     private readonly _results: T[];
 
+    private readonly _jobs: WaitableJob[];
+
     private readonly _api: ApiClient;
 
-    public constructor({ headers }: Options = {}) {
-        this._q = new Queue({ concurrency: 2 });
+    public constructor({ headers, concurrency = 2 }: Options = {}) {
+        this._q = new Queue({ concurrency });
         this._api = new ApiClient({
             type: RequestType.text,
             fetchOptions: {
@@ -28,6 +36,7 @@ class Crawler<T> {
         });
 
         this._results = [];
+        this._jobs = [];
     }
 
     /**
@@ -39,6 +48,7 @@ class Crawler<T> {
         return new Job<T, string>(this, { url }, {
             queue: this._q,
             api: this._api,
+            registerJob: this._registerJob,
         }, {
             onResult: this._saveResult,
         });
@@ -48,24 +58,20 @@ class Crawler<T> {
         this._results.push(result);
     };
 
+    private readonly _registerJob = (job: WaitableJob) => {
+        this._jobs.push(job);
+    };
+
     /**
      * Get results from all jobs.
      */
-    public results(): Promise<T[]> {
-        return new Promise(r => {
-            if (!this._q.getQueueSize()) {
-                r(this._results);
-                return;
-            }
-            const sizeChange = (...args: unknown[]) => {
-                const q = Array.from(args)[0];
-                if (q === 0) {
-                    r(this._results);
-                    this._q.off(EVENTS.QUEUE_SIZE, sizeChange);
-                }
-            };
-            this._q.on(EVENTS.QUEUE_SIZE, sizeChange);
-        });
+    public async results(): Promise<T[]> {
+        // jobs can spawn more jobs (`click`) while we wait for the earlier ones - they get appended to the list,
+        // so a plain index loop picks them up
+        for (let i = 0; i < this._jobs.length; i++) {
+            await this._jobs[i]?.wait();
+        }
+        return this._results;
     }
 }
 

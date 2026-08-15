@@ -14,10 +14,26 @@ const PAGES: Record<string, string> = {
     "/package/one": `<h2>one</h2><div id="readme">first readme</div>`,
     "/package/two": `<h2>two</h2><div id="readme">second readme</div>`,
     "/links": `<a href="/403">one</a><a href="/403">two</a>`,
+    "/many": `<a href="/slow/1">1</a><a href="/slow/2">2</a><a href="/slow/3">3</a>`
+        + `<a href="/slow/4">4</a><a href="/slow/5">5</a><a href="/slow/6">6</a>`,
 };
 
+const SLOW_RESPONSE_MS = 100;
+
 const startServer = async () => {
+    let inFlight = 0;
+    const serverStats = { maxInFlight: 0 };
     const srv = http.createServer((req, res) => {
+        if (req.url?.startsWith("/slow/")) {
+            inFlight++;
+            serverStats.maxInFlight = Math.max(serverStats.maxInFlight, inFlight);
+            setTimeout(() => {
+                inFlight--;
+                res.writeHead(200, { "content-type": "text/html" });
+                res.end(`<h2>slow ${req.url?.split("/").pop() ?? ""}</h2>`);
+            }, SLOW_RESPONSE_MS);
+            return;
+        }
         const page = PAGES[req.url ?? ""];
         if (page) {
             res.writeHead(200, { "content-type": "text/html" });
@@ -30,18 +46,23 @@ const startServer = async () => {
     await new Promise<void>(resolve => { srv.listen(0, "127.0.0.1", resolve); });
 
     const url = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
-    return { server: srv, baseUrl: url };
+    return { server: srv, baseUrl: url, stats: serverStats };
 };
 
 let server: http.Server,
-    baseUrl: string;
+    baseUrl: string,
+    stats: { maxInFlight: number };
 
 const unhandled: unknown[] = [];
 const onUnhandled = (e: unknown) => { unhandled.push(e); };
 
 beforeAll(async () => {
-    ({ server, baseUrl } = await startServer());
+    ({ server, baseUrl, stats } = await startServer());
     process.on("unhandledRejection", onUnhandled);
+});
+
+beforeEach(() => {
+    stats.maxInFlight = 0;
 });
 
 afterAll(async () => {
@@ -84,6 +105,28 @@ describe("Crawler", () => {
             { name: "one", description: "first readme" },
             { name: "two", description: "second readme" },
         ]);
+    });
+});
+
+describe("concurrency", () => {
+    it("throttles concurrent downloads to the default concurrency of 2", async () => {
+        const c = new Crawler<string>();
+        await c.start(`${baseUrl}/many`).find("a").click()
+            .each(job => job.find("h2").textContent().result());
+
+        const results = await c.results();
+        expect(results).toHaveLength(6);
+        expect(stats.maxInFlight).toBe(2);
+    });
+
+    it("throttles concurrent downloads to a custom concurrency", async () => {
+        const c = new Crawler<string>({ concurrency: 4 });
+        await c.start(`${baseUrl}/many`).find("a").click()
+            .each(job => job.find("h2").textContent().result());
+
+        const results = await c.results();
+        expect(results).toHaveLength(6);
+        expect(stats.maxInFlight).toBe(4);
     });
 });
 

@@ -14,9 +14,14 @@ interface Options {
     url: string;
 }
 
+interface WaitableJob {
+    wait: () => Promise<void>;
+}
+
 interface Deps {
     queue: Queue;
     api: ApiClient;
+    registerJob: (job: WaitableJob) => void;
 }
 
 interface Callbacks<R> {
@@ -24,8 +29,6 @@ interface Callbacks<R> {
 }
 
 type Elements = Cheerio<Node>;
-
-const noop = () => undefined;
 
 class Job<ExpR, CR = never> {
     private readonly _crawler: Crawler<ExpR>;
@@ -183,7 +186,16 @@ class Job<ExpR, CR = never> {
 
         this._jobQueue = new Queue({ concurrency: 1 });
 
+        this._deps.registerJob(this);
         this._download();
+    }
+
+    /**
+     * Waits until all currently queued steps of this job are finished. Used by `Crawler.results()`, but can be
+     * awaited directly too. It never rejects - use `result()`/`get()` to get the job's error, if any.
+     */
+    public wait(): Promise<void> {
+        return this._wait();
     }
 
     private _throwIfError() {
@@ -194,7 +206,7 @@ class Job<ExpR, CR = never> {
     }
 
     private _queue(fn: () => Promise<unknown>) {
-        const task = this._jobQueue.add(async () => {
+        this._jobQueue.add(async () => {
             if (this._hasError) {
                 return; // a previous step already failed, skip the rest of the chain
             }
@@ -206,18 +218,20 @@ class Job<ExpR, CR = never> {
                 this._error = e;
             }
         });
-        // the mirror task exists only so crawler.results() can wait for all jobs; its promise is observed by no one,
-        // so a rejection here would be an unhandled rejection killing the process (fn errors are caught above, but
-        // keep the safety net for queue-system-level failures)
-        this._deps.queue.add(() => task.promise).promise.catch(noop);
     }
 
     private _download() {
-        this._queue(() => this._deps.api.get(this._url).then(r => r.body as string).then((body) => {
+        this._queue(async () => {
+            // the shared queue throttles concurrent downloads crawler-wide; its task promise is awaited here,
+            // so a http error lands in `_queue`'s catch instead of floating
+            const task = this._deps.queue.add(
+                async () => this._deps.api.get(this._url).then(r => r.body as string),
+            );
+            const body = await task.promise;
             this._result = body;
             this._resultType = "html";
             this._$ = $load(body);
-        }));
+        });
         return this;
     }
 
@@ -328,5 +342,5 @@ class Job<ExpR, CR = never> {
     }
 }
 
-export type { Elements };
+export type { Elements, WaitableJob };
 export { Job };

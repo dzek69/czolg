@@ -4,7 +4,11 @@ The format is based on [EZEZ Changelog](https://ezez.dev/changelog/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [UNRELEASED]
+### Added
+- `concurrency` option for `Crawler` (defaults to 2, as before)
+- `Job.wait()` - resolves when all currently queued steps of the job are done (never rejects)
 ### Fixed
+- crawler-level concurrency now actually throttles page downloads; previously every job started its download immediately and the crawler-wide queue only idled alongside, so any number of pages could be fetched at once
 - HTTP/crawl errors no longer escape as unhandled promise rejections (which could kill the host process); the first error in a job's chain is stored and the remaining chained steps are skipped
 - `get()` and `result()` now reject with the job's first error instead of resolving with broken data
 - `each()` now awaits values returned by the callback, so errors from child jobs (after `.click()`) propagate to the awaited path
