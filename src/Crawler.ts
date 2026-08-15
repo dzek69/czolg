@@ -1,9 +1,12 @@
-import { ApiClient, RequestType } from "api-reach";
+import { createApiClient, ExpectedResponseBodyType } from "api-reach";
 import { Queue } from "queue-system";
 
+import type { ApiClient, ApiEndpoints } from "api-reach";
 import type { WaitableJob } from "./Job.js";
 
 import { Job } from "./Job.js";
+
+const DEFAULT_CONCURRENCY = 2;
 
 interface Options {
     headers?: Record<string, string>;
@@ -24,12 +27,12 @@ class Crawler<T> {
 
     private readonly _jobs: WaitableJob[];
 
-    private readonly _api: ApiClient;
+    private readonly _api: ApiClient<ExpectedResponseBodyType.text, ApiEndpoints>;
 
-    public constructor({ headers, concurrency = 2 }: Options = {}) {
+    public constructor({ headers, concurrency = DEFAULT_CONCURRENCY }: Options = {}) {
         this._q = new Queue({ concurrency });
-        this._api = new ApiClient({
-            type: RequestType.text,
+        this._api = createApiClient<ApiEndpoints, ExpectedResponseBodyType.text>({
+            responseType: ExpectedResponseBodyType.text,
             fetchOptions: {
                 headers: headers ?? {},
             },

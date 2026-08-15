@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
-import { makeArray } from "bottom-line-utils";
+import { ensureArray } from "@ezez/utils";
 import { load as $load } from "cheerio";
 import { EVENTS, Queue } from "queue-system";
 
-import type { ApiClient } from "api-reach";
+import type { ApiClient, ApiEndpoints, ExpectedResponseBodyType } from "api-reach";
 import type { Cheerio, CheerioAPI } from "cheerio";
-import type { Node } from "domhandler"; // eslint-disable-line @typescript-eslint/no-shadow
+import type { AnyNode } from "domhandler";
 import type { Crawler } from "./Crawler.js";
 
 import { instanceOfCheerio } from "./utils.js";
@@ -18,9 +18,11 @@ interface WaitableJob {
     wait: () => Promise<void>;
 }
 
+type TextApiClient = ApiClient<ExpectedResponseBodyType.text, ApiEndpoints>;
+
 interface Deps {
     queue: Queue;
-    api: ApiClient;
+    api: TextApiClient;
     registerJob: (job: WaitableJob) => void;
 }
 
@@ -28,7 +30,7 @@ interface Callbacks<R> {
     onResult: (result: R) => void;
 }
 
-type Elements = Cheerio<Node>;
+type Elements = Cheerio<AnyNode>;
 
 class Job<ExpR, CR = never> {
     private readonly _crawler: Crawler<ExpR>;
@@ -155,7 +157,7 @@ class Job<ExpR, CR = never> {
         this.get = (async () => {
             await this._wait();
             this._throwIfError();
-            return makeArray(this._result);
+            return ensureArray(this._result);
         }) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -225,7 +227,7 @@ class Job<ExpR, CR = never> {
             // the shared queue throttles concurrent downloads crawler-wide; its task promise is awaited here,
             // so a http error lands in `_queue`'s catch instead of floating
             const task = this._deps.queue.add(
-                async () => this._deps.api.get(this._url).then(r => r.body as string),
+                async () => this._deps.api.get(this._url, {}).then(r => r.body),
             );
             const body = await task.promise;
             this._result = body;
@@ -290,7 +292,7 @@ class Job<ExpR, CR = never> {
         this._queue(async () => {
             // @ts-expect-error TS can't handle this callback, this._result is unknown and making it a CR is even
             // more headache
-            this._result = makeArray(this._result).map(cb);
+            this._result = ensureArray(this._result).map(cb);
             const allStrings = (this._result as unknown[]).every((r) => typeof r === "string");
             if (allStrings) {
                 this._resultType = "strings";
@@ -313,7 +315,7 @@ class Job<ExpR, CR = never> {
             // @ts-expect-error TS can't handle this callback, this._result is unknown and making it a CR is even
             // more headache
             // eslint-disable-next-line callback-return
-            this._result = cb(makeArray(this._result));
+            this._result = cb(ensureArray(this._result));
             if (typeof this._result === "string") {
                 this._resultType = "strings";
                 return;
@@ -336,7 +338,7 @@ class Job<ExpR, CR = never> {
         this._queue(async () => {
             // @ts-expect-error TS can't handle this callback, this._result is unknown and making it a CR is even
             // more headache
-            this._result = makeArray(this._result).filter(cb);
+            this._result = ensureArray(this._result).filter(cb);
         });
         return this;
     }
