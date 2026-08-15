@@ -1,0 +1,6 @@
+packages:
+  - "."
+
+# ts-deepmerge <8 has a prototype-override DoS advisory (GHSA-87mf-gv2c-c62c); @ezez/eslint still declares ^7
+overrides:
+  ts-deepmerge: ">=8.0.0"

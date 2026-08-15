@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - deps upgrade: api-reach `0.12` -> `0.14` (rewritten, native fetch based), queue-system `3` -> `4`, cheerio `1.0.0-rc.10` -> `1.2`, bottom-line-utils replaced with @ezez/utils
 ### Dev
 - specs rewritten from live npmjs.com crawls (npmjs now responds with 403 to the crawler) to a deterministic local HTTP server
+- dev deps refreshed (typescript 5.9, typedoc 0.28) + ts-deepmerge override (>=8, GHSA-87mf-gv2c-c62c) - `pnpm audit` is clean now
 
 ## [2.0.0]
 ### Added
